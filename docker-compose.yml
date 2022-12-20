@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  broker:
+    build: ./broker
+    container_name: rabbit-broker
+    ports:
+      - 5672:5672
+      - 15672:15672
