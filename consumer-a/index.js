@@ -1,39 +1,52 @@
-// const morgan = require("morgan");
-// const express = require("express");
-
-// const app = express();
-
-// app.use(morgan("dev"));
-// app.get("/", function (req, res, next) {
-//   return res.send("Service A");
-// });
-
-// app.listen(3000, function () {
-//   console.log("Service A started");
-// });
-
 const amqplib = require("amqplib");
+
+const directExchange = "oneListener";
+const dispatchExchange = "anyListener";
+const broadcastExchange = "allListeners";
+
+async function createConsumer({
+  channel,
+  queueName,
+  exchangeName,
+  exchangeType,
+}) {
+  const q = await channel.assertQueue(queueName);
+  await channel.assertExchange(exchangeName, exchangeType, { durable: false });
+  await channel.bindQueue(q.queue, exchangeName);
+
+  channel.consume(q.queue, (msg) => {
+    const msgString = msg.content.toString();
+    console.log(`Message at A, Queue -> ${queueName} : ${msgString}`);
+    channel.ack(msg);
+  });
+}
 
 async function start() {
   try {
-    console.log("Listening");
-    const queueName = "myqueue";
-    const conn = await amqplib.connect("amqp://localhost");
+    console.log("Consumer A Listening...");
+    const conn = await amqplib.connect("amqp://broker");
     const channel = await conn.createChannel();
 
-    channel.assertQueue(queueName, { durable: false });
-    channel.consume(
-      queueName,
-      (msg) => {
-        console.log("Recieved msg at A", msg.content.toString());
-        channel.ack(msg);
-      },
-      {
-        noAck: false,
-      }
-    );
+    await createConsumer({
+      channel,
+      exchangeType: "fanout",
+      exchangeName: broadcastExchange,
+      queueName: "broadcastAQueue",
+    });
 
-    console.log("Started the consumer");
+    await createConsumer({
+      channel,
+      exchangeType: "direct",
+      exchangeName: directExchange,
+      queueName: "directQueue",
+    });
+
+    await createConsumer({
+      channel,
+      exchangeType: "direct",
+      exchangeName: dispatchExchange,
+      queueName: "dispatchQueue",
+    });
   } catch (error) {
     console.log(error);
   }

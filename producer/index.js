@@ -4,30 +4,55 @@ const express = require("express");
 
 const app = express();
 
+const directExchange = "oneListener";
+const dispatchExchange = "anyListener";
+const broadcastExchange = "allListeners";
+
 app.use(morgan("dev"));
+app.use(express.urlencoded({ extended: true }));
 app.get("/", function (req, res, next) {
   return res.send("Service B");
 });
 
-async function startService() {
+async function startServer() {
   try {
-    const queueName = "myqueue";
-    const conn = await amqp.connect("amqp://localhost");
-
+    const conn = await amqp.connect("amqp://broker");
     const channel = await conn.createChannel("mychannel");
-    await channel.assertQueue(queueName, { durable: false });
-    channel.sendToQueue(queueName, Buffer.from("Hi"));
-    console.log("Message sent");
 
-    await channel.close();
-    await conn.close();
+    await Promise.all([
+      channel.assertExchange(directExchange, "direct", { durable: false }),
+      channel.assertExchange(broadcastExchange, "fanout", { durable: false }),
+      channel.assertExchange(dispatchExchange, "direct", { durable: false }),
+    ]);
 
-    // app.listen(3001, function () {
-    //   console.log("Service B started");
-    // });
+    async function publishMsg(msg, exchangeName) {
+      const channel = await conn.createChannel();
+      channel.publish(exchangeName, "", Buffer.from(msg));
+      console.log("Published message to ", exchangeName);
+      await channel.close();
+    }
+
+    app.get("/all/:msg", (req, res) => {
+      publishMsg(req.params.msg, broadcastExchange);
+      return res.send("Sent to all");
+    });
+
+    app.get("/direct/:msg", (req, res) => {
+      publishMsg(req.params.msg, directExchange);
+      return res.send("Sent msg directly");
+    });
+
+    app.get("/dispatch/:msg", (req, res) => {
+      publishMsg(req.params.msg, dispatchExchange);
+      return res.send("Sent msg to any listener");
+    });
+
+    app.listen(3000, function () {
+      console.log("Producer started");
+    });
   } catch (error) {
     console.log(error);
   }
 }
 
-startService();
+startServer();

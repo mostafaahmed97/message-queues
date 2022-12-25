@@ -7,3 +7,32 @@ services:
     ports:
       - 5672:5672
       - 15672:15672
+    healthcheck:
+      test: "rabbitmq-diagnostics check_port_connectivity"
+      retries: 5
+      timeout: 2s # Timeout per healthcheck
+      interval: 5s # Interval between healthchecks
+      start_period: 5s # Estimated container boot time
+
+  producer:
+    build: ./producer
+    container_name: event-producer
+    depends_on:
+          broker:
+            condition: service_healthy
+    ports:
+      - 3000:3000
+    
+  consumer-a:
+    build: ./consumer-a
+    container_name: consumer-a
+    depends_on:
+          broker:
+            condition: service_healthy
+
+  consumer-b:
+    build: ./consumer-b
+    container_name: consumer-b
+    depends_on:
+          broker:
+            condition: service_healthy
