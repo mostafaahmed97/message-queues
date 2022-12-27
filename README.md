@@ -11,9 +11,9 @@ Their use cases include
 
 and many others.
 
-## Message Queue
+## How it works
 
-A message queue generally consists of three parts:
+A message queue generally consists of the following parts:
 
 - **Event Producers**, processes that generate events
 - **Event Consumers**, processes that handle events
