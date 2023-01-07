@@ -31,7 +31,7 @@ async function start() {
       channel,
       exchangeType: "fanout",
       exchangeName: broadcastExchange,
-      queueName: "broadcastAQueue",
+      queueName: "pubSubAQueue",
     });
 
     await createConsumer({
@@ -45,7 +45,7 @@ async function start() {
       channel,
       exchangeType: "direct",
       exchangeName: dispatchExchange,
-      queueName: "dispatchQueue",
+      queueName: "workQueue",
     });
   } catch (error) {
     console.log(error);

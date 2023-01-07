@@ -11,7 +11,7 @@ const broadcastExchange = "allListeners";
 app.use(morgan("dev"));
 app.use(express.urlencoded({ extended: true }));
 app.get("/", function (req, res, next) {
-  return res.send("Service B");
+  return res.send("Event Producer");
 });
 
 async function startServer() {
@@ -32,7 +32,7 @@ async function startServer() {
       await channel.close();
     }
 
-    app.get("/all/:msg", (req, res) => {
+    app.get("/pubsub/:msg", (req, res) => {
       publishMsg(req.params.msg, broadcastExchange);
       return res.send("Sent to all");
     });
@@ -42,7 +42,7 @@ async function startServer() {
       return res.send("Sent msg directly");
     });
 
-    app.get("/dispatch/:msg", (req, res) => {
+    app.get("/workqueue/:msg", (req, res) => {
       publishMsg(req.params.msg, dispatchExchange);
       return res.send("Sent msg to any listener");
     });
